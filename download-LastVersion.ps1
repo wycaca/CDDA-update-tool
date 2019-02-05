@@ -84,7 +84,8 @@ Function DownloadFile($url, $targetFile) {
             $count = $responseStream.Read($buffer, 0, $buffer.length)
             $downloadedBytes = $downloadedBytes + $count
             $delta = $delta + $count
-            if (($sw.Elapsed.TotalMilliseconds -ge 500) -or ($count -le 0)) {
+            if (($sw.Elapsed.TotalMilliseconds -ge 500) -or ($count -le 0))
+            {
                 #make it fast,avoid write-progress too often
                 $percent = (([System.Math]::Floor($downloadedBytes / 1024)) / $totalLength) * 100
                 $percentStr = '{0:n1}' -f $percent
@@ -97,10 +98,13 @@ Function DownloadFile($url, $targetFile) {
     }
     Finally
     {
-        $targetStream.Flush()
-        $targetStream.Close()
-        $targetStream.Dispose()
-        $responseStream.Dispose()
+        if ($null -ne $targetStream)
+        {
+            $targetStream.Flush()
+            $targetStream.Close()
+            $targetStream.Dispose()
+            $responseStream.Dispose()
+        }
     }
 }
 DownloadFile $downloadUrl $filePath
