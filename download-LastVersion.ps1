@@ -1,13 +1,22 @@
 # 解压目录
-$extraPath = "E:\game\Cataclysme"
+$extraPath = "F:\game\Cataclysme"
+# 图像包文件夹
+$gtxPath = $extraPath + "\gfx"
 # 解压完成后,打开文件夹
 $showFolder = $false
 # 是否使用代理
-$useProxy = $true
+$useProxy = $false
 # 代理地址
 $proxyUrl = "http://127.0.0.1:8087"
-#发布页网页链接
+# 发布页网页链接
 $url = "http://dev.narc.ro/cataclysm/jenkins-latest/Windows_x64/Tiles/"
+# undead 发布git链接
+$undead_git_url = "https://github.com/SomeDeadGuy/UndeadPeopleTileset.git"
+# undead 项目名(文件夹名)
+$undead_project = "UndeadPeopleTileset"
+# 具体图像包文件夹名
+$undead_folder_name = "MSX++UnDeadPeopleEdition"
+$undead_folder_name2 = "MSX++UnDeadPeopleEditionLegacy"
 
 #获取html文件,转为html对象
 $htmlDoc = (invoke-WebRequest $url).ParsedHTML
@@ -33,7 +42,9 @@ foreach ($n in $contents)
     }
 }
 # 保存文件完整路径
-$filePath = $PSScriptRoot + "\" + $fileName
+#$filePath = $PSScriptRoot + "\" + $fileName
+# 暂时用解压目录
+$filePath = $extraPath + "\" + $fileName
 # 拼接最新版本下载链接
 $downloadUrl = $url + $fileName
 # 下载文件
@@ -107,15 +118,59 @@ Function DownloadFile($url, $targetFile) {
         }
     }
 }
-DownloadFile $downloadUrl $filePath
 
-#$fileName = "cataclysmdda-0.C-8482.zip"
-"开始解压, 解压至 --- " + $extraPath
-#解压
-Expand-Archive -Force -Path $filePath -DestinationPath $extraPath
-"解压完成, have fun~"
-#打开解压文件夹
-if ($showFolder)
-{
-	explorer.exe $extraPath
+Function DownloadUnDead() {
+    # undead存放的文件夹, 游戏目录
+    $undead_path = $extraPath + "\" + $undead_project
+	$undead_folder = $undead_path + "\" + $undead_folder_name
+    $undead_folder2 =$undead_path + "\" + $undead_folder_name2
+    if (Test-Path $undead_path) {
+        "undead 文件夹已存在, 开始拉取更新"
+        cd $undead_path
+        git pull
+	}else {
+        "开始下载UnDead项目"
+        cd $extraPath
+        git clone $undead_git_url
+        cd $undead_path
+    }
+    # 拼接图像包路径
+    $undead_gtx_path = $gtxPath + "\" + $undead_folder_name + "\"
+    $undead_gtx_path2 = $gtxPath + "\" + $undead_folder_name2 + "\"
+    # 检测是否已存在文件夹
+    if ((Test-Path $undead_gtx_path)){
+        "清理旧版图像包"
+        Remove-Item $undead_gtx_path -Force -Recurse
+        
+    }
+    if (Test-Path $undead_gtx_path2) {
+        "清理旧版Legacy图像包"
+        Remove-Item $undead_gtx_path2 -Force -Recurse
+    }
+    Copy-Item $undead_folder -Destination $undead_gtx_path -Recurse
+    Copy-Item $undead_folder2 -Destination $undead_gtx_path2 -Recurse
+    # "$undead_folder 复制到 $undead_gtx_path"
+    "图像包已复制"
 }
+
+Function Main() {
+    DownloadFile $downloadUrl $filePath
+
+    # $fileName = "cataclysmdda-0.C-8482.zip"
+    "开始解压, 解压至 --- " + $extraPath
+    # 解压
+    Expand-Archive -Force -Path $filePath -DestinationPath $extraPath
+    "解压完成, have fun~"
+
+    # 开始undead图像包处理
+    "开始undead图像包处理"
+    DownloadUnDead
+
+    #打开解压文件夹
+    if ($showFolder)
+    {
+	    explorer.exe $extraPath
+    }
+}
+
+Main
